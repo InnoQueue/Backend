@@ -12,9 +12,8 @@ open class QueuePinCode {
     @Column(name = "id", nullable = false)
     open var id: Long? = null
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "queue_id", nullable = false)
-    open var queue: Queue? = null
+    @Column(name = "queue_id", nullable = false)
+    open var queueId: Long? = null
 
     @Column(name = "pin_code", nullable = false, length = 8)
     open var pinCode: String? = null

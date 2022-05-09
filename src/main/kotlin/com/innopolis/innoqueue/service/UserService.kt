@@ -2,7 +2,7 @@ package com.innopolis.innoqueue.service
 
 import com.innopolis.innoqueue.controller.dto.TokenDTO
 import com.innopolis.innoqueue.model.User
-import com.innopolis.innoqueue.model.UserSetting
+import com.innopolis.innoqueue.model.UserSettings
 import com.innopolis.innoqueue.repository.UserRepository
 import com.innopolis.innoqueue.repository.UserSettingsRepository
 import com.innopolis.innoqueue.utils.StringGenerator
@@ -60,8 +60,8 @@ class UserService(
         newUser.token = token
         newUser.fcmToken = fcmToken
         val savedUser = userRepository.save(newUser)
-        val settings = UserSetting()
-        settings.user = newUser
+        val settings = UserSettings()
+        settings.userId = newUser.id!!
         settingsRepository.save(settings)
         return savedUser
     }

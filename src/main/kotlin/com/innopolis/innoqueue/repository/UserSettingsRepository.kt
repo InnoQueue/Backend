@@ -1,9 +1,11 @@
 package com.innopolis.innoqueue.repository
 
-import com.innopolis.innoqueue.model.UserSetting
+import com.innopolis.innoqueue.model.UserSettings
 import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
 
 @Repository
 
-interface UserSettingsRepository : CrudRepository<UserSetting, Long>
+interface UserSettingsRepository : CrudRepository<UserSettings, Long> {
+    fun getUserSettingsByUserId(userId: Long): UserSettings?
+}

@@ -1,6 +1,5 @@
 package com.innopolis.innoqueue.model
 
-import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.persistence.*
 
@@ -13,9 +12,8 @@ open class Notification {
     @Column(name = "notification_id", nullable = false)
     open var id: Long? = null
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    open var user: User? = null
+    @Column(name = "user_id", nullable = false)
+    open var userId: Long? = null
 
     @Column(name = "message_type", nullable = false, length = 32)
     open var messageType: String? = null

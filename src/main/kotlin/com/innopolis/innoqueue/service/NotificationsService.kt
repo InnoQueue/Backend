@@ -21,6 +21,7 @@ import java.time.ZoneOffset
 
 class NotificationsService(
     private val userService: UserService,
+    private val settingsService: SettingsService,
     private val firebaseMessagingService: FirebaseMessagingNotificationsService,
     private val notificationRepository: NotificationRepository,
     private val queueRepository: QueueRepository,
@@ -32,7 +33,8 @@ class NotificationsService(
 
     fun getNotifications(token: String): NotificationsListDTO {
         val user = userService.getUserByToken(token)
-        val (allNotifications, unreadNotifications) = user.notifications.partition { it.isRead!! }
+        val (allNotifications, unreadNotifications) = notificationRepository.getNotificationsByUserId(user.id!!)
+            .partition { it.isRead!! }
         for (notification in unreadNotifications) {
             notification.isRead = true
         }
@@ -45,7 +47,7 @@ class NotificationsService(
 
     fun anyNewNotification(token: String): NewNotificationDTO {
         val user = userService.getUserByToken(token)
-        return NewNotificationDTO(user.notifications.any { !it.isRead!! })
+        return NewNotificationDTO(notificationRepository.getNotificationsByUserId(user.id!!).any { !it.isRead!! })
     }
 
     fun clearOldNotifications(): EmptyDTO {
@@ -69,22 +71,22 @@ class NotificationsService(
         participant: User,
         queue: Queue
     ) {
-        val notifications = prepareNotificationsListToSend(notificationType, participant, queue)
+        val notifications = prepareNotificationsListToSend(notificationType, participant.id!!, queue)
         notificationRepository.saveAll(notifications)
-        sendNotificationsToFirebase(notifications, notificationType, participant, queue)
+        sendNotificationsToFirebase(notifications, notificationType, participant.id!!, participant.name!!, queue)
     }
 
     private fun sendNotificationsToFirebase(
         notifications: List<Notification>,
         notificationType: NotificationsTypes,
-        participant: User,
+        participantId: Long,
+        participantName: String,
         queue: Queue
     ) {
         for (message in notifications) {
-            val isPersonal = message.user?.id!! == participant.id!!
+            val isPersonal = message.userId!! == participantId
             val queueName = queue.name!!
             val queueId = queue.id!!
-            val participantName = participant.name!!
             val (title, body) = MessagePushNotificationCreator(
                 notificationType,
                 queueName,
@@ -92,7 +94,7 @@ class NotificationsService(
                 participantName
             ).getTitleAndBodyForMessage()
             if (title != null && body != null) {
-                val token = message.user?.fcmToken!!
+                val fcmToken = userService.getUserById(message.userId!!)?.fcmToken!!
                 try {
                     val dataMap = HashMap<String, String?>()
                     dataMap["title"] = title
@@ -100,7 +102,7 @@ class NotificationsService(
                     dataMap["queue_id"] = queueId.toString()
                     dataMap["queue_name"] = queueName
                     dataMap["participant_name"] = participantName
-                    val res = firebaseMessagingService.sendNotification(title, body, token, dataMap)
+                    val res = firebaseMessagingService.sendNotification(title, body, fcmToken, dataMap)
                     println("Firebase result: $res")
                 } catch (e: Exception) {
                     println("Firebase exception: $e")
@@ -111,7 +113,7 @@ class NotificationsService(
 
     private fun prepareNotificationsListToSend(
         notificationType: NotificationsTypes,
-        participant: User,
+        participantId: Long,
         queue: Queue
     ): List<Notification> {
         val messageType = this.convertToMessageType(notificationType)
@@ -119,15 +121,14 @@ class NotificationsService(
 
         when (notificationType) {
             NotificationsTypes.SHOOK -> {
-                val notification = createNotification(participant, participant.id!!, messageType, queue.id!!)
+                val notification = createNotification(participantId, participantId, messageType, queue.id!!)
                 notifications.add(notification)
             }
             else -> {
-                val participantId = participant.id!!
                 for (userQueue in queue.userQueues) {
                     if (shouldSendMessage(notificationType, userQueue, participantId)) {
                         val notification =
-                            createNotification(userQueue.user!!, participantId, messageType, queue.id!!)
+                            createNotification(userQueue.user?.id!!, participantId, messageType, queue.id!!)
                         notifications.add(notification)
                     }
                 }
@@ -144,15 +145,15 @@ class NotificationsService(
         return if (isRequiredNotification(notificationType)) {
             true
         } else {
-            isUserSubscribed(notificationType, userQueue.user!!, participantId)
+            isUserSubscribed(notificationType, userQueue.user?.id!!, participantId)
         }
     }
 
-    private fun isUserSubscribed(notificationType: NotificationsTypes, user: User, participantId: Long): Boolean {
-        return if (user.id == participantId) {
+    private fun isUserSubscribed(notificationType: NotificationsTypes, userId: Long, participantId: Long): Boolean {
+        return if (userId == participantId) {
             true
         } else {
-            val userSetting = user.settings!!
+            val userSetting = settingsService.getSettingsByUserId(userId)!!
             when (notificationType) {
                 NotificationsTypes.COMPLETED -> userSetting.completed!!
                 NotificationsTypes.SKIPPED -> userSetting.skipped!!
@@ -174,9 +175,9 @@ class NotificationsService(
         }
     }
 
-    private fun createNotification(user: User, participantId: Long, messageType: String, queueId: Long): Notification {
+    private fun createNotification(userId: Long, participantId: Long, messageType: String, queueId: Long): Notification {
         val notification = Notification()
-        notification.user = user
+        notification.userId = userId
         notification.participantId = participantId
         notification.messageType = messageType
         notification.queueId = queueId

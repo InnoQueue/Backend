@@ -23,12 +23,6 @@ open class User {
     @OneToMany(mappedBy = "user")
     open var queues: MutableSet<UserQueue> = mutableSetOf()
 
-    @OneToOne(fetch = FetchType.LAZY, mappedBy = "user")
-    open var settings: UserSetting? = null
-
-    @OneToMany(mappedBy = "user")
-    open var notifications: MutableSet<Notification> = mutableSetOf()
-
     @OneToMany(mappedBy = "creator")
     open var createdQueues: MutableSet<Queue> = mutableSetOf()
 

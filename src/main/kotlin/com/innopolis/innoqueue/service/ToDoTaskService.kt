@@ -25,7 +25,7 @@ class ToDoTaskService(
                     queueId = queue.id,
                     name = queue.name,
                     color = queue.color,
-                    isImportant = queue.userQueues.firstOrNull { u -> u.user?.id == user.id }?.isImportant,
+                    isImportant = queue.userQueues.firstOrNull { u -> u.user?.id!! == user.id!! }?.isImportant,
                     trackExpenses = queue.trackExpenses,
                     hashCode = queueService.getHashCode(queueService.transformQueueToDTO(queue, true, user.id!!))
                 )
@@ -40,7 +40,7 @@ class ToDoTaskService(
         val queue = queueService.getUserQueueByQueueId(user, taskId)
         // If this queue requires to track expenses it should not be null or negative number
         if (queue.queue?.trackExpenses!!) {
-            if (expenses == null || expenses < 0){
+            if (expenses == null || expenses < 0) {
                 throw IllegalArgumentException("Expenses should be a non negative number")
             }
         }
@@ -97,7 +97,7 @@ class ToDoTaskService(
         val savedQueue = userQueueRepository.save(queue)
         notificationService.createNotificationMessage(
             NotificationsTypes.COMPLETED,
-            queue.user!!,
+            userService.getUserById(queue.user?.id!!)!!,
             savedQueue.queue!!
         )
     }

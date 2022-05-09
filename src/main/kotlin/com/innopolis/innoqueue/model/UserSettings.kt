@@ -4,16 +4,15 @@ import javax.persistence.*
 
 @Entity
 @Table(name = "user_settings")
-open class UserSetting {
+open class UserSettings {
     @Id
     @SequenceGenerator(name = "user_settings_generator", sequenceName = "user_settings_id_seq", allocationSize = 1)
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_settings_generator")
     @Column(name = "user_settings_id", nullable = false)
     open var id: Long? = null
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    open var user: User? = null
+    @Column(name = "user_id", nullable = false)
+    open var userId: Long? = null
 
     @Column(name = "completed", nullable = false)
     open var completed: Boolean? = true

@@ -2,6 +2,7 @@ package com.innopolis.innoqueue.service
 
 import com.innopolis.innoqueue.dto.SettingsDTO
 import com.innopolis.innoqueue.model.User
+import com.innopolis.innoqueue.model.UserSettings
 import com.innopolis.innoqueue.repository.UserRepository
 import com.innopolis.innoqueue.repository.UserSettingsRepository
 import org.springframework.stereotype.Service
@@ -14,7 +15,7 @@ class SettingsService(
 ) {
     fun getSettings(token: String): SettingsDTO {
         val user = userService.getUserByToken(token)
-        val settings = user.settings!!
+        val settings = getSettingsByUserId(user.id!!)!!
         return SettingsDTO(
             user.name!!,
             settings.completed!!,
@@ -26,11 +27,13 @@ class SettingsService(
         )
     }
 
+    fun getSettingsByUserId(userId: Long): UserSettings? = this.settingsRepository.getUserSettingsByUserId(userId)
+
     fun updateSettings(token: String, settings: SettingsDTO): SettingsDTO {
         val user = userService.getUserByToken(token)
         var (newSavedUser, changed) = updateUserNameOrDefault(user, settings)
 
-        val userSettings = newSavedUser.settings!!
+        val userSettings = getSettingsByUserId(newSavedUser.id!!)!!
         if (settings.completed != null) {
             userSettings.completed = settings.completed
             changed = true
